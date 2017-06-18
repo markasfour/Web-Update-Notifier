@@ -10,8 +10,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 import sys
 import os
+import re
 import pygame
 from pyvirtualdisplay import Display
+from bs4 import BeautifulSoup
+
+def visible(element):
+    if element.parent.name in ['sytle', 'script', '[document]', 'head', 'title']:
+        return False
+    elif re.match('<!--.*-->', unicode(element)):
+        return False
+    return True
 
 class site_handler:
     def __init__(self):
@@ -19,7 +28,12 @@ class site_handler:
         self.wait = WebDriverWait(self.driver, 3)
 
     def start_connection(self, url):
-        self.driver.get(url)
+        print "Connecting to " + url + " ..."
+        try:
+            self.driver.get(url)
+        except:
+            print "Could not connect to " + url
+        print "Successfully connected"
 
     def end_connection(self):
         self.driver.close()
@@ -29,6 +43,12 @@ class site_handler:
 
     def get_html(self):
         return self.driver.page_source
+
+    def get_text(self, html):
+        soup = BeautifulSoup(html, 'html.parser')
+        texts = soup.findAll(text=True)
+        return filter(visible, texts)
+
 
 if __name__ == '__main__':
     url = ""
@@ -51,17 +71,17 @@ if __name__ == '__main__':
     sh.start_connection(url)
     update_found = False;
     page_html = sh.get_html()
-    f = open("site.html", 'w')
-    f.write(page_html.encode('utf-8'))
+    text = sh.get_text(page_html)
+    #print text
     while update_found == False:
-        new_page_html = sh.get_html()
-        f2 = open("new_site.html", 'w')
-        f2.write(new_page_html.encode('utf-8'))
-        if page_html == new_page_html:
-            page_html = new_page_html
+        page_html = sh.get_html()
+        new_text = sh.get_text(page_html)
+        if text == new_text:
+            text = new_text
             time.sleep(interval_period)
             sh.refresh()
         else:
+            #print new_text
             print "Found Update on Page!"
             update_found = True;
 
