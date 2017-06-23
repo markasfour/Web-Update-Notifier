@@ -12,11 +12,14 @@ import sys
 import os
 import re
 import pygame
+import difflib
+from pprint import pprint
 from pyvirtualdisplay import Display
 from bs4 import BeautifulSoup
 
+
 def visible(element):
-    if element.parent.name in ['sytle', 'script', '[document]', 'head', 'title']:
+    if element.parent.name in ['style', 'script', '[document]', 'head', 'title']:
         return False
     elif re.match('<!--.*-->', unicode(element)):
         return False
@@ -51,6 +54,7 @@ class site_handler:
 
 
 if __name__ == '__main__':
+    print "Initializing..."
     url = ""
     interval_period = 3
     sound = os.getcwd() + '/sound.wav'
@@ -61,28 +65,31 @@ if __name__ == '__main__':
     elif len(sys.argv) >= 2:
         url = sys.argv[1]
         if len(sys.argv) == 3:
-            interval_period = sys.argv[2]
+            interval_period = float(sys.argv[2])
         if len(sys.argv) == 4:
             sound = sys.argv[3]
 
+    d = difflib.Differ()
     display = Display(visible=0, size=(800, 600))
     display.start()
     sh = site_handler()
     sh.start_connection(url)
+    time.sleep(interval_period)
     update_found = False;
     page_html = sh.get_html()
     text = sh.get_text(page_html)
-    #print text
+    print "Waiting for updates..."
     while update_found == False:
         page_html = sh.get_html()
         new_text = sh.get_text(page_html)
         if text == new_text:
             text = new_text
-            time.sleep(interval_period)
             sh.refresh()
+            time.sleep(interval_period)
         else:
-            #print new_text
             print "Found Update on Page!"
+            result = list(d.compare(text, new_text))
+            pprint(result)
             update_found = True;
 
             pygame.mixer.init()
